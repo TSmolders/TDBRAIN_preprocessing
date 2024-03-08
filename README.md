@@ -10,7 +10,7 @@
 		4. unusual high frequency noise (noisiness criterion)
 ### With MNE:
 4. Repair EOG, ECG, and EMG artifacts with ICA (fitting ICA to high-pass filtered copy of eeg data, but applying to unfiltered eeg data)
-5. BP filter (1, 100)
+5. Bandpass filter (1, 100)
 6. epoch data (optional)
 (7. baseline correction?) not applied yet
 
