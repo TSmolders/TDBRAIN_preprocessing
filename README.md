@@ -1,5 +1,5 @@
 # Automatic preprocessing pipeline for the [TDBRAIN](https://doi.org/10.1038/s41597-022-01409-z) dataset, using pyprep and MNE packages:
-### With [pyprep](https://github.com/sappelhoff/pyprep) package according to [Bidgely-Shamlo et al. 2015](https://www.frontiersin.org/articles/10.3389/fninf.2015.00016/full):
+### With [pyprep](https://github.com/sappelhoff/pyprep) package according to PREP [Bidgely-Shamlo et al. 2015](https://www.frontiersin.org/articles/10.3389/fninf.2015.00016/full):
 1. Remove line-noise without committing to a filtering strategy (optional)
 2. Robustly reference the signal relative to an estimate of the 'true' average reference
 3. Detect and interpolate bad channels relative to this reference
