@@ -4,10 +4,10 @@
 2. Robustly reference the signal relative to an estimate of the 'true' average reference
 3. Detect and interpolate bad channels relative to this reference
 	- Detection by:
-		a. extreme amplitudes (deviation criterion)
-		b. lack of correlation with any other channel (correlation criterion)
-		c. lack of predictability by other channels (predictability/RANSAC criterion)
-		d. unusual high frequency noise (noisiness criterion)
+		1. extreme amplitudes (deviation criterion)
+		2. lack of correlation with any other channel (correlation criterion)
+		3. lack of predictability by other channels (predictability/RANSAC criterion)
+		4. unusual high frequency noise (noisiness criterion)
 ### With MNE:
 4. Repair EOG, ECG, and EMG artifacts with ICA (fitting ICA to high-pass filtered copy of eeg data, but applying to unfiltered eeg data)
 5. BP filter (1, 100)
