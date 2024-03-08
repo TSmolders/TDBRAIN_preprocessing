@@ -12,7 +12,6 @@
 4. Repair EOG, ECG, and EMG artifacts with ICA (fitting ICA to high-pass filtered copy of eeg data, but applying to unfiltered eeg data)
 5. Bandpass filter (1, 100)
 6. epoch data (optional)
-(7. baseline correction?) not applied yet
 
 ### preprocess_pipeline.py:
 Main file for running the pipeline. Takes the sourcepath of the directory containing the 'derivatives' folder of the TDBRAIN dataset.
