@@ -19,6 +19,8 @@ from preprocessing import Preproccesing
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.pyplot import close
 
+# initialize counter
+count = 1
 
 def preprocess_pipeline(params):
     """
@@ -53,6 +55,12 @@ def preprocess_pipeline(params):
 
     print(line_noise, epochs_length)
 
+    # calculate total number of files if count = 1 to show progress
+    if count == 1:
+        total_files = 0
+        for _, _, filenames in os.walk(derivates_dir):
+            total_files += len(filenames)
+
     for subdir, params, files in os.walk(derivates_dir): # iterate through all files
         for file in files:
             if '.csv' in file:
@@ -64,7 +72,8 @@ def preprocess_pipeline(params):
                     sessID = str(file.split('_')[1])
                     cond = str(file.split('_')[2])
 
-                    print(f'\n [INFO]: processing subject: {ID}, session: {sessID}, condition: {cond} \n')
+                    print(f'\n [INFO]: processing subject: {ID}, session: {sessID}, condition: {cond}')
+                    print(f'[INFO]: file {count} of {total_files} \n')
 
                     
                     # create Preprocessing object

@@ -13,6 +13,8 @@
 5. Bandpass filter (1, 100)
 6. epoch data (optional)
 
+Extra: The pipeline saves a .pdf file in the same directory as the preprocessed data to see the effect of the different preprocessing steps.
+
 ### preprocess_pipeline.py:
 Main file for running the pipeline. Takes the sourcepath of the directory containing the 'derivatives' folder of the TDBRAIN dataset.
 e.g:
@@ -24,5 +26,8 @@ python preprocess_pipeline.py 'D:\Documents\TD-BRAIN\TDBRAIN-dataset-derivatives
 Can adjust preprocessing parameters below in the file.
 
 ### preprocessing.py:
-Contains the class which actually performs the preprocessing steps
+Contains the class which actually performs the preprocessing steps.
+
+### plotting.py
+Contains the function and subfunctions to plot different diagnostics at different steps of the preprocessing pipeline.
 
