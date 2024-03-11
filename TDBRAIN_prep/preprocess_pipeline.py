@@ -1,13 +1,42 @@
+"""
+Created on Thu Mar 7 2024
+
+author: T.Smolders
+
+description: automated pipeline for preprocessing of the TDBRAIN dataset
+
+name: preprocess_pipeline.py
+
+version: 1.1
+
+"""
 import os
 import sys
 import numpy as np
 import pandas as pd
 import pickle
 from preprocessing import Preproccesing
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.pyplot import close
 
 
 def preprocess_pipeline(params):
+    """
+    Pipeline to preprocess EEG data from the TDBRAIN dataset.
 
+    Requires params dictionary with the following keys (initialized in __main__):
+    - derivatives_dir: path to the directory containing the \derivatives\ folder
+    - preprocessed_dir: path to the directory where the preprocessed data will be saved
+    - condition: list of conditions to be preprocessed
+    - sessions: list of sessions to be preprocessed
+    - epochs_length: length of epochs in seconds, 0 = no epoching
+    - sfreq: sampling frequency in Hz
+    - line_noise: list of frequencies for line noise removal, empty list = no line noise removal
+
+    Output:
+    - preprocessed data object saved as .npy file
+    - plots for each preprocessing step saved in a .pdf file
+    """
     # if parameters are not defined, set them to values which will not affect the preprocessing
     if not 'epochs_length' in params:
         params['epochs_length'] = 0
@@ -49,16 +78,27 @@ def preprocess_pipeline(params):
                     # define directory and subdirectories for preprocessed data
                     save_dir = f'{preprocessed_dir}/{ID}/{sessID}/eeg'
                     print(f'{save_dir = }')
-                    save_path = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessed.npy'
-                    print(f'{save_path = }')
+                    save_path_data = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessed.npy'
+                    print(f'{save_path_data = }')
+                    save_path_plots = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessing_plots.pdf'
+                    print(f'{save_path_plots = }')
 
                     # create directory if it does not exist
-                    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                    os.makedirs(os.path.dirname(save_path_data), exist_ok=True)
+
+                    # save plots in pdf file
+                    figs = preprocessed_data.figs
+                    with PdfPages(save_path_plots) as pdf:
+                        for fig in figs:
+                            pdf.savefig(fig)
+                    close('all') # closes all figures for memory management
 
                     # store preprocessed data object as .npy file
-                    with open(save_path, 'wb') as output:
+                    delattr(preprocessed_data, 'figs') # delete figs attribute, because cannot be pickled
+                    with open(save_path_data, 'wb') as output:
                         pickle.dump(preprocessed_data, output, pickle.HIGHEST_PROTOCOL)
-                    print(f'\n [INFO]: preprocessed data object saved to: {save_path} \n')
+                    print(f'\n [INFO]: preprocessed data object saved to: {save_path_data} \n')
+
 
 if __name__ == '__main__':
     print(f'Root directory: {sys.argv[1]}')

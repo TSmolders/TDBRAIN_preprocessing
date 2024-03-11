@@ -1,5 +1,5 @@
 """
-Created on Thu Mar 7 16:23 2024
+Created on Thu Mar 7 2024
 
 author: T.Smolders
 
@@ -7,7 +7,7 @@ description: Object for automated preprocessing of the TDBRAIN dataset
 
 name: preprocessing.py
 
-version: 1.0
+version: 1.1
 
 """
 
@@ -18,12 +18,49 @@ import pandas as pd
 import mne
 from mne.preprocessing import ICA
 from pyprep.prep_pipeline import PrepPipeline
+from plotting import get_plots
 
 mne.set_log_level('WARNING')
 
 class Preproccesing:
+    '''
+        Create a object for preprocessing data, including:
 
-    
+        NAME:
+            Preprocessing
+
+        DESCRIPTION:
+          Preprocessing
+        =================
+
+        Parameters
+        -----------------------------------------------------------------------
+        filename:       name of the file that should be preprocesed, input files can
+                        be in .csv or .edf format
+        epochs_length:  length of epochs in seconds, 0 = no epoching
+        line_noise:     list of frequencies for line noise removal,
+                        empty list = no line noise removal
+        sfreq:          sampling frequency in Hz
+
+        -----------------------------------------------------------------------
+        Provides
+            1. preprocesses data according to the following pipeline:
+                - PREP (see readme for source and details)
+                - ICA for ECG, EOG and EMG artifact correction
+                - bandpass filtering (1-100Hz)
+                - epoching (optional)
+            2. plots data at different steps in the preprocessing pipeline
+
+        Returns:
+        -----------------------------------------------------------------------
+        A Preprocessing object including information about
+        - bad channels after each step in the PREP pipeline
+        - preprocessed data
+        - preprocessed epochs (if epoching is applied)
+        - plots of the data at different steps in the preprocessing pipeline
+
+        '''
+
     def __init__(
             self,
             filename, # path to the .csv file containing the EEG data
@@ -79,13 +116,19 @@ class Preproccesing:
         raw = mne.io.RawArray(eeg_data, info) # load data as MNE object, with the previously created 'info'
         print('\n', 'RAW DATA LOADED', '\n')
 
+        # plot non-preprocessed data
+        non_prep_plot = get_plots(raw,
+                                  step='Before preprocessing',
+                                  scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'}
+                                  )
+
         # define PREP parameters
         prep_params = {
-            "ref_chs": "eeg", # channels to be used for rereferencing
-            "reref_chs": "eeg", # channels from which reference signal will be subtracted
-            "line_freqs": line_noise, # frequencies for line noise removal
+            "ref_chs": "eeg",  # channels to be used for rereferencing
+            "reref_chs": "eeg",  # channels from which reference signal will be subtracted
+            "line_freqs": line_noise,  # frequencies for line noise removal
         }
-        prep = PrepPipeline(raw, prep_params, montage) # documentation: https://pyprep.readthedocs.io/en/latest/_modules/pyprep/prep_pipeline.html#PrepPipeline
+        prep = PrepPipeline(raw, prep_params, montage)  # documentation: https://pyprep.readthedocs.io/en/latest/_modules/pyprep/prep_pipeline.html#PrepPipeline
         print('\n', "'PREP' OBJECT CREATED", '\n')
 
         # run/fit PREP, applying the following steps to the raw data:
@@ -98,12 +141,17 @@ class Preproccesing:
 
         # store preprocessed data & bad channels as attributes
         self.prep_data = prep.raw
-        self.bad_channels_original = prep.noisy_channels_original # (dict) Detailed bad channels in each criteria before robust reference.
-        self.bad_channels_before_interpolation = prep.noisy_channels_before_interpolation # (dict) Detailed bad channels in each criteria just before interpolation.
-        self.bad_channels_after_interpolation = prep.noisy_channels_after_interpolation # (dict) Detailed bad channels in each criteria just after interpolation.
-        self.still_bad_channels = prep.still_noisy_channels # (list) Names of the noisy channels after interpolation.
+        self.bad_channels_original = prep.noisy_channels_original  # (dict) Detailed bad channels in each criteria before robust reference.
+        self.bad_channels_before_interpolation = prep.noisy_channels_before_interpolation  # (dict) Detailed bad channels in each criteria just before interpolation.
+        self.bad_channels_after_interpolation = prep.noisy_channels_after_interpolation  # (dict) Detailed bad channels in each criteria just after interpolation.
+        self.still_bad_channels = prep.still_noisy_channels  # (list) Names of the noisy channels after interpolation.
 
         raw = prep.raw
+
+        # plot data after PREP
+        prep_plot = get_plots(raw,
+                              step='After PREP preprocessing',
+                              scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'})
 
         ## Repairing EOG, ECG, and EMG artifacts with ICA
         # create a copy of the raw data and apply a low pass filter to remove 
@@ -112,7 +160,7 @@ class Preproccesing:
         filt_raw = raw.copy().filter(l_freq=1, h_freq=None)
 
         # creating & fitting ICA object
-        ica = ICA(n_components=15, method='picard', max_iter="auto") # n PCA components
+        ica = ICA(n_components=15, method='picard', max_iter="auto")  # n PCA components
         ica.fit(filt_raw)
         print('\n', "ICA FITTED", '\n')
 
@@ -135,14 +183,31 @@ class Preproccesing:
         ica.apply(raw, exclude = eog_indices + ecg_indices + emg_indices)
         print('\n', "ICA APPLIED", '\n')
 
+        # plot data after ICA
+        ica_prep_plot = get_plots(raw,
+                                  step='After PREP & ICA preprocessing',
+                                  ica=ica,
+                                  plot_ica_overlay=True)
+
         ## Applying high-pass & low-pass filter
         raw.filter(l_freq=1, h_freq=100)
 
-        self.preprocessed_raw = raw # Raw object with PREP preprocessing and ICA applied
+        # plot data after BP filtering
+        bp_ica_prep_plot = get_plots(raw,
+                                     step='After PREP, ICA & BP filter preprocessing')
+
+        self.preprocessed_raw = raw  # Raw object with PREP preprocessing, ICA applied and BP filtering
+
+        # storing plots as attribute
+        self.figs = [non_prep_plot, prep_plot, ica_prep_plot, bp_ica_prep_plot]
 
         ## Epoching the data
         if epochs_length > 0:
-            self.preprocessed_epochs = mne.make_fixed_length_epochs(raw, duration = epochs_length, overlap = 0) # Epochs object with PREP preprocessing and ICA applied
+            self.preprocessed_epochs = mne.make_fixed_length_epochs(
+                raw,
+                duration=epochs_length,
+                overlap=0
+                )  # Epochs object with PREP preprocessing and ICA applied
         else:
             self.preprocessed_epochs = 'No epoching applied'
         print('\n', "EPOCHING APPLIED", '\n')
