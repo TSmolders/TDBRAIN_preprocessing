@@ -93,7 +93,7 @@ def get_plots(raw, step, scalings={'eeg': 1.5, 'eog': 'auto', 'emg': 'auto', 'ec
             tfr_mt.apply_baseline((0, 0.5), mode='mean')  # baseline correction
 
         # plot time frequency decomposition
-        tfr_mt.plot(channel, axes=axes, show=False)  # plot average TFR for the nth channel
+        tfr_mt.plot(channel, tmin=1, tmax=8, axes=axes, show=False)  # plot average TFR for the nth channel
 
         return
 

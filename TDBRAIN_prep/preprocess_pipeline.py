@@ -75,6 +75,8 @@ def preprocess_pipeline(params):
                     print(f'\n [INFO]: processing subject: {ID}, session: {sessID}, condition: {cond}')
                     print(f'[INFO]: file {count} of {total_files} \n')
 
+                    count += 1
+
                     
                     # create Preprocessing object
                     preprocessed_data = Preproccesing(
