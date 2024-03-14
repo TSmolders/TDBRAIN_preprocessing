@@ -66,7 +66,8 @@ class Preproccesing:
             filename, # path to the .csv file containing the EEG data
             epochs_length = 0, # length of epochs in seconds, 0 = no epoching
             line_noise = [], # frequencies for line noise removal, empty list = no line noise removal
-            sfreq = 500 # sampling frequency in Hz
+            sfreq = 500, # sampling frequency in Hz
+            plots = False # if True, plots will be made and saved
     ):
         ## Set montage based on channel names and locations provided in Van Dijk et al., (2022) (Copied from Anne van Duijvenbode)
         ch_types = ['eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg', 'eeg',\
@@ -116,11 +117,12 @@ class Preproccesing:
         raw = mne.io.RawArray(eeg_data, info) # load data as MNE object, with the previously created 'info'
         print('\n', 'RAW DATA LOADED', '\n')
 
-        # plot non-preprocessed data
-        non_prep_plot = get_plots(raw,
-                                  step='Before preprocessing',
-                                  scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'}
-                                  )
+        if plots == True:
+            # plot non-preprocessed data
+            non_prep_plot = get_plots(raw,
+                                    step='Before preprocessing',
+                                    scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'}
+                                    )
 
         # define PREP parameters
         prep_params = {
@@ -148,10 +150,11 @@ class Preproccesing:
 
         raw = prep.raw
 
-        # plot data after PREP
-        prep_plot = get_plots(raw,
-                              step='After PREP preprocessing',
-                              scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'})
+        if plots == True:
+            # plot data after PREP
+            prep_plot = get_plots(raw,
+                                step='After PREP preprocessing',
+                                scalings={'eeg': 1e2, 'eog': 'auto', 'emg': 'auto', 'ecg': 'auto'})
 
         ## Repairing EOG, ECG, and EMG artifacts with ICA
         # create a copy of the raw data and apply a low pass filter to remove 
@@ -183,23 +186,26 @@ class Preproccesing:
         ica.apply(raw, exclude = eog_indices + ecg_indices + emg_indices)
         print('\n', "ICA APPLIED", '\n')
 
-        # plot data after ICA
-        ica_prep_plot = get_plots(raw,
-                                  step='After PREP & ICA preprocessing',
-                                  ica=ica,
-                                  plot_ica_overlay=True)
+        if plots == True:
+            # plot data after ICA
+            ica_prep_plot = get_plots(raw,
+                                    step='After PREP & ICA preprocessing',
+                                    ica=ica,
+                                    plot_ica_overlay=True)
 
         ## Applying high-pass & low-pass filter
         raw.filter(l_freq=1, h_freq=100)
 
-        # plot data after BP filtering
-        bp_ica_prep_plot = get_plots(raw,
-                                     step='After PREP, ICA & BP filter preprocessing')
+        if plots == True:
+            # plot data after BP filtering
+            bp_ica_prep_plot = get_plots(raw,
+                                        step='After PREP, ICA & BP filter preprocessing')
 
         self.preprocessed_raw = raw  # Raw object with PREP preprocessing, ICA applied and BP filtering
 
-        # storing plots as attribute
-        self.figs = [non_prep_plot, prep_plot, ica_prep_plot, bp_ica_prep_plot]
+        if plots == True:
+            # storing plots as attribute
+            self.figs = [non_prep_plot, prep_plot, ica_prep_plot, bp_ica_prep_plot]
 
         ## Epoching the data
         if epochs_length > 0:

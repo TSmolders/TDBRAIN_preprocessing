@@ -19,8 +19,6 @@ from preprocessing import Preproccesing
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.pyplot import close
 
-# initialize counter
-count = 1
 
 def preprocess_pipeline(params):
     """
@@ -52,63 +50,78 @@ def preprocess_pipeline(params):
     epochs_length = params['epochs_length']
     line_noise = params['line_noise']
     sfreq = params['sfreq']
+    plots = params['plots']
 
-    print(line_noise, epochs_length)
+    #print(line_noise, epochs_length)
+    exlude_dirs = ['preprocessed', 'results_manuscript', 'adhd_sample'] # exclude these directories
 
-    # calculate total number of files if count = 1 to show progress
-    if count == 1:
+    # because my pc crashed, starting from the last subject
+    subs = [s for s in os.listdir(preprocessed_dir) if os.path.isdir(os.path.join(preprocessed_dir,s))]
+    subs = np.sort(subs)
+    sample_ids = subs.tolist()
+    print(f'subjects already preprocessed: {len(sample_ids)}')
+
+    # initialize counter
+    count = 1 + (len(sample_ids) * 2)
+
+    # calculate total number of files if count == 1 to show progress
+    if count == 1 + (len(sample_ids) * 2):
         total_files = 0
-        for _, _, filenames in os.walk(derivates_dir):
+        for _, dirs, filenames in os.walk(derivates_dir):
+            dirs[:] = [d for d in dirs if d not in exlude_dirs] # exclude directories
             total_files += len(filenames)
 
-    for subdir, params, files in os.walk(derivates_dir): # iterate through all files
+    for subdir, dirs, files in os.walk(derivates_dir): # iterate through all files
+        dirs[:] = [d for d in dirs if d not in exlude_dirs] # exclude directories
         for file in files:
-            if '.csv' in file:
-                if any(session in file for session in sessions) & any(condition in file for condition in conditions):
-                    filepath = os.path.join(subdir, file)
+            if not any(sample_id in file for sample_id in sample_ids): # filter participants to include
+                if '.csv' in file:
+                    if any(session in file for session in sessions) & any(condition in file for condition in conditions):
+                        filepath = os.path.join(subdir, file)
 
-                    # split file name to obtain ID, session number, and condition
-                    ID = str(file.split('_')[0])
-                    sessID = str(file.split('_')[1])
-                    cond = str(file.split('_')[2])
+                        # split file name to obtain ID, session number, and condition
+                        ID = str(file.split('_')[0])
+                        sessID = str(file.split('_')[1])
+                        cond = str(file.split('_')[2])
 
-                    print(f'\n [INFO]: processing subject: {ID}, session: {sessID}, condition: {cond}')
-                    print(f'[INFO]: file {count} of {total_files} \n')
+                        print(f'\n [INFO]: processing subject: {ID}, session: {sessID}, condition: {cond}')
+                        print(f'[INFO]: file {count} of {total_files} \n')
 
-                    count += 1
+                        count += 1
 
-                    
-                    # create Preprocessing object
-                    preprocessed_data = Preproccesing(
-                        filepath, 
-                        epochs_length, 
-                        line_noise, 
-                        sfreq
-                        )
-                    
-                    # define directory and subdirectories for preprocessed data
-                    save_dir = f'{preprocessed_dir}/{ID}/{sessID}/eeg'
-                    print(f'{save_dir = }')
-                    save_path_data = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessed.npy'
-                    print(f'{save_path_data = }')
-                    save_path_plots = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessing_plots.pdf'
-                    print(f'{save_path_plots = }')
+                        # create Preprocessing object
+                        preprocessed_data = Preproccesing(
+                            filepath,
+                            epochs_length,
+                            line_noise,
+                            sfreq,
+                            plots
+                            )
+                        
+                        # define directory and subdirectories for preprocessed data
+                        save_dir = f'{preprocessed_dir}/{ID}/{sessID}/eeg'
+                        #print(f'{save_dir = }')
+                        save_path_data = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessed.npy'
+                        #print(f'{save_path_data = }')
 
-                    # create directory if it does not exist
-                    os.makedirs(os.path.dirname(save_path_data), exist_ok=True)
+                        # create directory if it does not exist
+                        os.makedirs(os.path.dirname(save_path_data), exist_ok=True)
 
-                    # save plots in pdf file
-                    figs = preprocessed_data.figs
-                    with PdfPages(save_path_plots) as pdf:
-                        for fig in figs:
-                            pdf.savefig(fig)
-                    close('all') # closes all figures for memory management
+                        if plots == True:
+                            save_path_plots = f'{save_dir}/{ID}_{sessID}_{cond}_preprocessing_plots.pdf'
+                            # save plots in pdf file
+                            figs = preprocessed_data.figs
+                            with PdfPages(save_path_plots) as pdf:
+                                for fig in figs:
+                                    pdf.savefig(fig)
+                            close('all') # closes all figures for memory management
+                            delattr(preprocessed_data, 'figs') # delete figs attribute, because cannot be pickled
 
-                    # store preprocessed data object as .npy file
-                    delattr(preprocessed_data, 'figs') # delete figs attribute, because cannot be pickled
-                    with open(save_path_data, 'wb') as output:
-                        pickle.dump(preprocessed_data, output, pickle.HIGHEST_PROTOCOL)
-                    print(f'\n [INFO]: preprocessed data object saved to: {save_path_data} \n')
+                        # store preprocessed data object as .npy file
+                        with open(save_path_data, 'wb') as output:
+                            pickle.dump(preprocessed_data, output, pickle.HIGHEST_PROTOCOL)
+                        print(f'\n [INFO]: preprocessed data object saved to: {save_path_data} \n')
+
 
 
 if __name__ == '__main__':
@@ -118,14 +131,15 @@ if __name__ == '__main__':
     params['derivatives_dir'] = sys.argv[1] + '/derivatives/'
     print(f'Reading data from: {params["derivatives_dir"]}')
 
-    params['preprocessed_dir'] = sys.argv[1] + '/preprocessed_tdbrain_prep'
+    params['preprocessed_dir'] = sys.argv[1] + '/preprocessed_own'
     print(f'Writing preprocessed data to: {params["preprocessed_dir"]}')
 
     # the following parameters can be changed by the user
     params['condition'] = ['EO', 'EC'] # conditions to be preprocessed
-    params['sessions'] = ['ses-1', 'ses-2'] # sessions to be preprocessed
+    params['sessions'] = ['ses-1'] # sessions to be preprocessed
     params['epochs_length'] = 9.95 # length of epochs in seconds, comment out for no epoching
     params['sfreq'] = 500 # sampling frequency
     params['line_noise'] = np.arange(50, params['sfreq'] / 2, 50) # 50 Hz line noise removal, comment out for no line noise removal
+    params['plots'] = False # set to True to create and store plots during preprocessing
 
     preprocess_pipeline(params)
