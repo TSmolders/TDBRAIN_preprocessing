@@ -55,7 +55,7 @@ def preprocess_pipeline(params):
     #print(line_noise, epochs_length)
     exlude_dirs = ['preprocessed', 'results_manuscript', 'adhd_sample'] # exclude these directories
 
-    # because my pc crashed, starting from the last subject
+    # in case of crashes/interruptions, starting from the last subject in the preprocessed directory
     subs = [s for s in os.listdir(preprocessed_dir) if os.path.isdir(os.path.join(preprocessed_dir,s))]
     subs = np.sort(subs)
     sample_ids = subs.tolist()

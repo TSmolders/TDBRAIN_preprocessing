@@ -163,24 +163,48 @@ class Preproccesing:
         filt_raw = raw.copy().filter(l_freq=1, h_freq=None)
 
         # creating & fitting ICA object
-        ica = ICA(n_components=15, method='picard', max_iter="auto")  # n PCA components
-        ica.fit(filt_raw)
-        print('\n', "ICA FITTED", '\n')
+        try:
+            ica = ICA(n_components=15, method='picard', max_iter="auto")  # n PCA components
+            ica.fit(filt_raw)
+            print('\n', "ICA FITTED", '\n')
+        except Exception as e: # sometimes n_components is too high, so in that case we try again with a lower number
+            print(e)
+            print('\n', "TOO MANY COMPONENTS FOR ICA FITTING, TRYING AGAIN WITH LOWER NUMBER OF COMPONENTS", '\n')
+            n_components = 15 - self.still_bad_channels
+            ica = ICA(n_components=n_components, method='picard', max_iter="auto")  # n PCA components
+            ica.fit(filt_raw)
+            print('\n', "ICA FITTED", '\n')
+
 
         # automatically detect ICs that best capture EOG signal
-        ica.exclude = []
-        eog_indices, eog_scores = ica.find_bads_eog(raw)
-        print('\n', "EOG ARTIFACTS DETECTED", '\n')
+        try:
+            ica.exclude = []
+            eog_indices, eog_scores = ica.find_bads_eog(raw)
+            print('\n', "EOG ARTIFACTS DETECTED", '\n')
+        except:
+            print('\n', "SOMETHING WRONG WITH EOG SIGNAL, SO NO EOG ARTIFACTS DETECTED", '\n')
+            eog_indices = []
+            eog_scores = []
 
         # automatically detect ICs that best capture ECG signal
-        ica.exclude = []
-        ecg_indices, ecg_scores = ica.find_bads_ecg(raw)
-        print('\n', "ECG ARTIFACTS DETECTED", '\n')
+        try:
+            ica.exclude = []
+            ecg_indices, ecg_scores = ica.find_bads_ecg(raw)
+            print('\n', "ECG ARTIFACTS DETECTED", '\n')
+        except:
+            print('\n', "SOMETHING WRONG WITH ECG SIGNAL, SO NO ECG ARTIFACTS DETECTED", '\n')
+            ecg_indices = []
+            ecg_scores = []
 
         # automatically detect ICs that best capture muscle artifacts
-        ica.exclude = []
-        emg_indices, emg_scores = ica.find_bads_muscle(raw)
-        print('\n', "EMG ARTIFACTS DETECTED", '\n')
+        try:
+            ica.exclude = []
+            emg_indices, emg_scores = ica.find_bads_muscle(raw)
+            print('\n', "EMG ARTIFACTS DETECTED", '\n')
+        except:
+            print('\n', "SOMETHING WRONG WITH EMG SIGNAL, SO NO EMG ARTIFACTS DETECTED", '\n')
+            emg_indices = []
+            emg_scores = []
 
         # repair all artifacts with ICA
         ica.apply(raw, exclude = eog_indices + ecg_indices + emg_indices)
